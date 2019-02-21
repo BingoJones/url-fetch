@@ -16,8 +16,16 @@ const JobSchema = new Schema({
 
 const Job = model('Job', JobSchema);
 
+// `node-fetch` complains if schema is missing
+// (it wants `http://www.google.com`; not `www.google.com`)
+const normalizeUrl = (url) => {
+    const hasHttp = /^http/.test(url);
+
+    return hasHttp ? url : `http://${url}`;
+};
+
 router.post('/jobs', (req, res, next) => {
-    const { url } = req.body;
+    const url = normalizeUrl(req.body.url);
 
     if (!validUrl.isUri(url)) {
 	return res.sendStatus(400);
