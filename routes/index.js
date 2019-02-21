@@ -24,26 +24,26 @@ router.post('/jobs', (req, res, next) => {
     }
 
     const job = new Job({ url });
+    const { id: jobId } = job;
 
-    job.save((err, jobs) => {
+    job.save((err, job) => {
 	if (err) {
 	    console.log(`Unable to create job record for "${url}".  Error: ${err}`);
 	    return res.sendStatus(500);
 	}
-    });
 
-    try {
+	res.send({ jobId, status: job.status });
+
 	fetch(url)
 	    .then(res => res.text())
 	    .then(body => {
-		Job.findOneAndUpdate({ _id: job.id}, { status: 'done', response: body }).exec();
+		job.update({ status: 'done', response: body }).exec();
+	    })
+	    .catch(err => {
+		console.log(`Could not fetch contents of "${url}"`);
+		job.update({ status: 'error' }).exec();
 	    });
-    } catch (e) {
-	console.log(`Could not fetch contents of "${url}".  Error: ${e}`);
-	return res.sendStatus(500);
-    }
-
-    res.send({ jobId: job.id, status: job.status });
+    });
 });
 
 router.get('/jobs/:jobId', (req, res, next) => {
