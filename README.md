@@ -1,10 +1,10 @@
-An example of a REST API that will fetch data from a URL and store the results in a database
+An example of a REST API that will fetch data from a URL (requests are enqueued in a job queue for async processsing) and store the results in a database
 
 (Used [Express application generator](http://expressjs.com/en/starter/generator.html) for the scaffolding)
 
 ## Installation
 
-Note: it is assumed that you have a local instance of MongoDB up and running already.
+Note: it is assumed that you have a local instance of MongoDB and REDIS up and running already.
 
 To install: `npm install`
 

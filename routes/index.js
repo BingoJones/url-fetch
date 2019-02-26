@@ -8,6 +8,7 @@ const queue = kue.createQueue();
 
 const fetchUrlJob = queue.create('fetchUrl');
 
+// Job will fetch contents of URL and store in DB
 queue.process('fetchUrl', function(job, done) {
     const { id: jobId, url } = job.data;
 
@@ -49,7 +50,7 @@ const JobSchema = new Schema({
 const Job = model('Job', JobSchema);
 
 // `node-fetch` complains if schema is missing
-// (it wants `http://www.google.com`; not `www.google.com`)
+// (it wants `http://www.google.com`, not `www.google.com`)
 const normalizeUrl = (url) => {
     const hasHttp = /^http/.test(url);
 
@@ -72,6 +73,7 @@ router.post('/jobs', (req, res, next) => {
 	    return res.sendStatus(500);
 	}
 
+	// Add request to job queue
 	queue.create('fetchUrl', {
 	    id: jobId,
 	    url,
