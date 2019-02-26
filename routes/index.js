@@ -3,6 +3,38 @@ const router = express.Router();
 const fetch = require('node-fetch');
 const mongoose = require('mongoose');
 const validUrl = require('valid-url');
+const kue = require('kue');
+const queue = kue.createQueue();
+
+const fetchUrlJob = queue.create('fetchUrl');
+
+queue.process('fetchUrl', function(job, done) {
+    const { id: jobId, url } = job.data;
+
+    fetch(url)
+	.then(res => res.text())
+	.then(body => {
+	    Job.findById(jobId, (err, job) => {
+		if (err) {
+		    return done(new Error(`No such jobId: ${jobId}`));
+		}
+
+		job.update({ status: 'done', response: body }).exec();
+		done();
+	    });
+	})
+	.catch(err => {
+	    console.log(`Could not fetch contents of "${url}"`);
+	    Job.findById(jobId, (err, job) => {
+		if (err) {
+		    return done(new Error(`Could not fetch contents of "${url}"`));
+		}
+		
+		job.update({ status: 'error' }).exec();
+		done();
+	    });
+	});
+});
 
 mongoose.connect('mongodb://localhost/local', { useNewUrlParser: true });
 
@@ -40,17 +72,12 @@ router.post('/jobs', (req, res, next) => {
 	    return res.sendStatus(500);
 	}
 
-	res.send({ jobId, status: job.status });
+	queue.create('fetchUrl', {
+	    id: jobId,
+	    url,
+	}).save();
 
-	fetch(url)
-	    .then(res => res.text())
-	    .then(body => {
-		job.update({ status: 'done', response: body }).exec();
-	    })
-	    .catch(err => {
-		console.log(`Could not fetch contents of "${url}"`);
-		job.update({ status: 'error' }).exec();
-	    });
+	res.send({ jobId, status: job.status });
     });
 });
 
